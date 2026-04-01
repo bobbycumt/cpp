@@ -6,9 +6,9 @@
 # -- Project information -----------------------------------------------------
 # https://www.sphinx-doc.org/en/master/usage/configuration.html#project-information
 
-project = '论文检索报告'
-copyright = '论文检索'
-# author = ''
+project = 'C++教学讲义'
+copyright = '维度科学素养'
+# author = '刘博'
 # release = '1.0'
 
 # -- General configuration ---------------------------------------------------
