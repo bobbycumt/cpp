@@ -6,7 +6,7 @@
 C++教学讲义
 ===================================
 
-.. image:: ./a.jpg
+.. image:: ./a.png
    
 .. toctree::
    :maxdepth: 3
