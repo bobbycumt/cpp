@@ -13,7 +13,7 @@
    :caption: 列表
    
    
-   b/index
+   lang/index
 
 
 
