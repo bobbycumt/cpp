@@ -10,7 +10,7 @@
    
 .. toctree::
    :maxdepth: 3
-   :caption: 列表
+   :caption: 目录
    
    
    lang/index
