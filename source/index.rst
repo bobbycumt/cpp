@@ -17,4 +17,5 @@ C++教学讲义
    alg/index
    csp/index
    GESP/index
+   other/index
 
