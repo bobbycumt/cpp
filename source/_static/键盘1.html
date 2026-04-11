@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>查表匹配法 - 键盘打字模拟</title>
+    <title>查表匹配法 (单步模式) - 键盘打字模拟</title>
     <style>
         body {
             font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
@@ -22,67 +22,76 @@
             background: white;
             max-width: 790px;
             width: 100%;
-            padding: 25px;
+            padding: 20px 25px;
             border-radius: 12px;
             box-shadow: 0 4px 15px rgba(0,0,0,0.1);
             box-sizing: border-box;
         }
 
-        h2 { margin-top: 0; color: #2c3e50; text-align: center; border-bottom: 2px solid #eee; padding-bottom: 10px; }
+        h2 { margin-top: 0; color: #2c3e50; text-align: center; border-bottom: 2px solid #eee; padding-bottom: 10px; font-size: 22px; }
 
         /* 控制区 */
-        .controls { display: flex; justify-content: center; align-items: center; gap: 15px; margin-bottom: 20px; }
-        input[type="text"] { padding: 8px 12px; font-size: 16px; border: 1px solid #ccc; border-radius: 4px; width: 250px; text-transform: uppercase; font-family: monospace; }
-        button { padding: 8px 20px; background-color: #3498db; color: white; border: none; border-radius: 4px; font-size: 16px; cursor: pointer; font-weight: bold; transition: background 0.2s; }
-        button:hover { background-color: #2980b9; }
-        button:disabled { background-color: #95a5a6; cursor: not-allowed; }
+        .controls { display: flex; justify-content: center; align-items: center; gap: 10px; margin-bottom: 15px; }
+        input[type="text"] { padding: 8px 10px; font-size: 16px; border: 1px solid #ccc; border-radius: 4px; width: 220px; text-transform: uppercase; font-family: monospace; }
+        button { padding: 8px 15px; border: none; border-radius: 4px; font-size: 15px; cursor: pointer; font-weight: bold; transition: all 0.2s; }
+        .btn-step { background-color: #e67e22; color: white; }
+        .btn-step:hover { background-color: #d35400; }
+        .btn-play { background-color: #3498db; color: white; }
+        .btn-play:hover { background-color: #2980b9; }
+        .btn-reset { background-color: #95a5a6; color: white; }
+        button:disabled { background-color: #bdc3c7; cursor: not-allowed; transform: none; }
 
         /* 字符串显示区 */
-        .string-display { text-align: center; font-size: 24px; font-family: monospace; font-weight: bold; margin-bottom: 20px; letter-spacing: 5px; }
+        .string-display { text-align: center; font-size: 20px; font-family: monospace; font-weight: bold; margin-bottom: 15px; letter-spacing: 3px; background: #f8f9fa; padding: 10px; border-radius: 6px;}
         .char-normal { color: #7f8c8d; }
-        .char-active { color: #e74c3c; transform: scale(1.3); display: inline-block; transition: all 0.2s; }
+        .char-active { color: #e74c3c; transform: scale(1.4); display: inline-block; transition: all 0.2s; }
         .char-done { color: #2c3e50; }
 
         /* 键盘区 */
-        .keyboard { display: flex; flex-direction: column; gap: 5px; align-items: center; margin-bottom: 25px; background: #e9ecef; padding: 15px; border-radius: 8px; }
+        .keyboard { display: flex; flex-direction: column; gap: 5px; align-items: center; margin-bottom: 20px; background: #eef2f5; padding: 15px; border-radius: 8px; border: 1px dashed #bdc3c7; }
         .kb-row { display: flex; gap: 5px; }
         .kb-row:nth-child(2) { margin-left: 20px; }
         .kb-row:nth-child(3) { margin-left: 40px; }
         .kb-row:nth-child(4) { margin-left: 60px; }
         
-        .key { width: 40px; height: 40px; display: flex; justify-content: center; align-items: center; font-weight: bold; border-radius: 4px; background: #fff; box-shadow: 0 2px 0 #bdc3c7; border: 1px solid #dcdde1; transition: all 0.1s; }
-        .key.active { transform: translateY(2px); box-shadow: 0 0 0 #bdc3c7; filter: brightness(0.8); border: 2px solid #000; }
+        .key { width: 38px; height: 38px; display: flex; justify-content: center; align-items: center; font-weight: bold; border-radius: 4px; background: #fff; box-shadow: 0 2px 0 #bdc3c7; border: 1px solid #dcdde1; transition: all 0.1s; font-size: 14px;}
+        .key.active { transform: translateY(2px) scale(1.1); box-shadow: 0 0 0 #bdc3c7; filter: brightness(0.9); border: 2px solid #2c3e50; z-index: 10;}
 
         /* 手指颜色映射 */
-        .finger-0 { background-color: #ff9ff3; } /* 左小指 */
-        .finger-1 { background-color: #feca57; } /* 左无名指 */
-        .finger-2 { background-color: #ff6b6b; } /* 左中指 */
-        .finger-3 { background-color: #1dd1a1; } /* 左食指 */
-        .finger-4 { background-color: #48dbfb; } /* 右食指 */
-        .finger-5 { background-color: #54a0ff; } /* 右中指 */
-        .finger-6 { background-color: #5f27cd; color: white;} /* 右无名指 */
-        .finger-7 { background-color: #c8d6e5; } /* 右小指 */
+        .finger-0 { background-color: #ff9ff3; } 
+        .finger-1 { background-color: #feca57; } 
+        .finger-2 { background-color: #ff6b6b; } 
+        .finger-3 { background-color: #1dd1a1; } 
+        .finger-4 { background-color: #48dbfb; } 
+        .finger-5 { background-color: #54a0ff; } 
+        .finger-6 { background-color: #5f27cd; color: white;} /* 深色背景配白字 */
+        .finger-7 { background-color: #c8d6e5; } 
 
         /* 计数器区 */
-        .counters { display: flex; justify-content: space-between; gap: 10px; margin-bottom: 20px; }
-        .counter-box { flex: 1; display: flex; flex-direction: column; align-items: center; background: #f8f9fa; border-radius: 6px; padding: 10px 5px; border: 2px solid transparent; transition: all 0.2s;}
-        .counter-box.active { transform: scale(1.1); box-shadow: 0 4px 10px rgba(0,0,0,0.15); border-color: #2c3e50; }
-        .finger-name { font-size: 12px; font-weight: bold; margin-bottom: 5px; color: #555; text-align: center;}
-        .finger-val { font-size: 24px; font-weight: bold; background: white; width: 100%; text-align: center; border-radius: 4px; padding: 5px 0; }
+        .counters { display: flex; justify-content: space-between; gap: 8px; margin-bottom: 15px; }
+        .counter-box { flex: 1; display: flex; flex-direction: column; align-items: center; background: #f8f9fa; border-radius: 6px; padding: 8px 4px; border: 2px solid transparent; transition: all 0.2s;}
+        .counter-box.active { transform: scale(1.1); box-shadow: 0 4px 10px rgba(0,0,0,0.15); border-color: #2c3e50; z-index: 10;}
+        .finger-name { font-size: 12px; font-weight: bold; margin-bottom: 5px; color: #555; text-align: center; white-space: nowrap;}
         
-        /* 查表展示区（代码逻辑模拟） */
-        .log-box { background: #2c3e50; color: #ecf0f1; padding: 15px; border-radius: 6px; font-family: monospace; font-size: 14px; min-height: 80px; }
-        .log-code { color: #f39c12; }
+        /* 修复数字看不见的 Bug：强制将这里的数字颜色设为深色 #2c3e50 */
+        .finger-val { font-size: 22px; font-weight: bold; background: white; color: #2c3e50; width: 100%; text-align: center; border-radius: 4px; padding: 4px 0; }
+        
+        /* 日志输出 */
+        .log-box { background: #2c3e50; color: #ecf0f1; padding: 12px 15px; border-radius: 6px; font-family: monospace; font-size: 14px; min-height: 85px; }
+        .log-highlight { color: #f1c40f; font-weight: bold; font-size: 16px;}
+        .log-code { color: #2ecc71; font-weight: bold; }
     </style>
 </head>
 <body>
 
 <div class="container">
-    <h2>方法一：查表匹配法演示</h2>
+    <h2>方法一：查表匹配法 (单步演示)</h2>
     
     <div class="controls">
-        <input type="text" id="inputStr" value="AON=BOO;" maxlength="30" placeholder="输入只包含键盘的大写字符">
-        <button id="btnPlay" onclick="startAnimation()">自动演示</button>
+        <input type="text" id="inputStr" value="AON=BOO;" maxlength="30" placeholder="大写字符">
+        <button class="btn-step" id="btnStep" onclick="nextStep()">👣 单步执行</button>
+        <button class="btn-play" id="btnPlay" onclick="autoPlay()">▶ 自动播放</button>
+        <button class="btn-reset" onclick="resetAll()">重置</button>
     </div>
 
     <div class="string-display" id="strDisplay"></div>
@@ -106,8 +115,7 @@
     </div>
 
     <div class="log-box" id="logBox">
-        等待开始...<br>
-        <span style="color:#7f8c8d;">提示：观察下方是如何在 8 个字符串桶中查找字符的。</span>
+        就绪。点击“单步执行”开始模拟外层遍历字符串、内层查表的双重循环过程。
     </div>
 </div>
 
@@ -133,8 +141,9 @@
     ];
 
     let counts = [0,0,0,0,0,0,0,0];
-    let isPlaying = false;
-    let timer = null;
+    let currentIdx = 0;
+    let isDone = false;
+    let autoTimer = null;
 
     // 初始化键盘渲染
     function initKeyboard() {
@@ -173,83 +182,106 @@
         }
     }
 
-    // 重置状态
-    function resetAll() {
-        counts = [0,0,0,0,0,0,0,0];
-        for(let i=0; i<8; i++) {
-            document.getElementById(`val-${i}`).innerText = 0;
-            document.getElementById(`cnt-${i}`).classList.remove('active');
-        }
+    // 清除上一步的高亮状态
+    function clearHighlights() {
         document.querySelectorAll('.key').forEach(k => k.classList.remove('active'));
+        document.querySelectorAll('.counter-box').forEach(c => c.classList.remove('active'));
     }
 
-    // 动画主逻辑
-    function startAnimation() {
-        if(isPlaying) return;
+    // 重置状态
+    function resetAll() {
+        clearTimeout(autoTimer);
+        counts = [0,0,0,0,0,0,0,0];
+        currentIdx = 0;
+        isDone = false;
         
+        for(let i=0; i<8; i++) {
+            document.getElementById(`val-${i}`).innerText = 0;
+        }
+        clearHighlights();
+        
+        document.getElementById('btnStep').disabled = false;
+        document.getElementById('btnPlay').disabled = false;
+        document.getElementById('inputStr').disabled = false;
+        document.getElementById('logBox').innerHTML = '已重置。等待开始...';
+        
+        renderString(document.getElementById('inputStr').value.toUpperCase(), -1);
+    }
+
+    // 单步核心逻辑
+    function nextStep() {
         const inputStr = document.getElementById('inputStr').value.toUpperCase();
         if(!inputStr) return;
-
-        isPlaying = true;
-        document.getElementById('btnPlay').disabled = true;
-        document.getElementById('inputStr').disabled = true;
         
-        resetAll();
-        let currentIdx = 0;
+        document.getElementById('inputStr').disabled = true;
+        clearHighlights();
 
-        function step() {
-            // 清理上一帧的高亮
-            document.querySelectorAll('.key').forEach(k => k.classList.remove('active'));
-            document.querySelectorAll('.counter-box').forEach(c => c.classList.remove('active'));
-
-            if (currentIdx >= inputStr.length) {
-                // 结束
-                isPlaying = false;
-                document.getElementById('btnPlay').disabled = false;
-                document.getElementById('inputStr').disabled = false;
-                document.getElementById('logBox').innerHTML = `<span style="color:#2ecc71;">✓ 字符串遍历完毕！</span><br>输出结果数组：[${counts.join(', ')}]`;
-                renderString(inputStr, currentIdx);
-                return;
-            }
-
-            const char = inputStr[currentIdx];
+        if (isDone || currentIdx >= inputStr.length) {
+            isDone = true;
+            document.getElementById('btnStep').disabled = true;
+            document.getElementById('btnPlay').disabled = true;
+            document.getElementById('logBox').innerHTML = `✅ <span style="color:#2ecc71;">字符串遍历完毕！</span><br>
+            <span style="color:#bdc3c7;">时间复杂度分析：处理了 ${inputStr.length} 个字符，每次最多遍历 8 个桶，共查找约 ${inputStr.length} × 8 次。</span>`;
             renderString(inputStr, currentIdx);
-
-            let foundFinger = -1;
-            
-            // 模拟 C++ 代码中的 for(int i=0; i<8; ++i) 查表过程
-            for (let i = 0; i < 8; i++) {
-                if (keysTable[i].includes(char)) {
-                    foundFinger = i;
-                    break;
-                }
-            }
-
-            const logBox = document.getElementById('logBox');
-            if (foundFinger !== -1) {
-                // 找到了
-                counts[foundFinger]++;
-                
-                // 更新UI
-                const keyElem = document.getElementById('key-' + char);
-                if (keyElem) keyElem.classList.add('active');
-                
-                const cntElem = document.getElementById(`cnt-${foundFinger}`);
-                cntElem.classList.add('active');
-                document.getElementById(`val-${foundFinger}`).innerText = counts[foundFinger];
-
-                logBox.innerHTML = `当前字符: <strong style="font-size:18px;">${char}</strong><br>` +
-                                   `代码执行: <span class="log-code">keys[${foundFinger}].find('${char}') != npos</span><br>` + 
-                                   `=> 找到归属！手指 <strong style="color:#f1c40f;">${foundFinger}</strong> 计数 +1`;
-            } else {
-                logBox.innerHTML = `当前字符: <strong>${char}</strong><br><span style="color:#e74c3c;">在所有 keys[] 中未找到该字符，跳过。</span>`;
-            }
-
-            currentIdx++;
-            timer = setTimeout(step, 800); // 800ms 一步
+            return;
         }
 
-        step();
+        const char = inputStr[currentIdx];
+        renderString(inputStr, currentIdx);
+
+        let foundFinger = -1;
+        let searchLog = [];
+        
+        // 模拟 C++ 代码中的 for(int i=0; i<8; ++i) 查表过程
+        for (let i = 0; i < 8; i++) {
+            if (keysTable[i].includes(char)) {
+                foundFinger = i;
+                searchLog.push(`桶${i}: <span class="log-code">找到</span>`);
+                break; // 找到就 break
+            } else {
+                searchLog.push(`桶${i}: 未找到`);
+            }
+        }
+
+        const logBox = document.getElementById('logBox');
+        if (foundFinger !== -1) {
+            // 找到了
+            counts[foundFinger]++;
+            
+            // 更新UI
+            const keyElem = document.getElementById('key-' + char);
+            if (keyElem) keyElem.classList.add('active');
+            
+            const cntElem = document.getElementById(`cnt-${foundFinger}`);
+            cntElem.classList.add('active');
+            document.getElementById(`val-${foundFinger}`).innerText = counts[foundFinger];
+
+            // 截取前几个没找到的日志，让过程更真实
+            let processText = searchLog.join(" → ");
+            
+            logBox.innerHTML = `当前字符: <span class="log-highlight">'${char}'</span><br>` +
+                               `<span style="color:#bdc3c7; font-size:12px;">查找过程: ${processText}</span><br>` + 
+                               `=> 归属确认！手指 <strong style="color:#e74c3c; font-size:16px;">${foundFinger}</strong> 计数 +1`;
+        } else {
+            logBox.innerHTML = `当前字符: <span class="log-highlight">'${char}'</span><br>` +
+                               `<span style="color:#e74c3c;">在所有 8 个 keys[] 桶中均未找到该字符，跳过。</span>`;
+        }
+
+        currentIdx++;
+    }
+
+    // 自动播放
+    function autoPlay() {
+        document.getElementById('btnPlay').disabled = true;
+        document.getElementById('btnStep').disabled = true;
+        
+        function loop() {
+            if (!isDone) {
+                nextStep();
+                autoTimer = setTimeout(loop, 800); // 每步 800ms
+            }
+        }
+        loop();
     }
 
     // 页面加载完成初始化
@@ -260,7 +292,7 @@
 
     // 监听输入框变化实时更新
     document.getElementById('inputStr').addEventListener('input', function(e) {
-        if(!isPlaying) renderString(e.target.value.toUpperCase(), -1);
+        if(currentIdx === 0) renderString(e.target.value.toUpperCase(), -1);
     });
 
 </script>
