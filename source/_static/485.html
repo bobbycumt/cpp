@@ -1,0 +1,324 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>RS485 差分信号抗干扰交互演示</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <style>
+        body {
+            background-color: transparent; 
+            font-family: system-ui, -apple-system, sans-serif;
+            display: flex;
+            justify-content: center;
+            padding: 20px;
+        }
+        .widget-container {
+            width: 100%;
+            max-width: 850px;
+            background: #0f172a;
+            color: #f8fafc;
+            border-radius: 12px;
+            box-shadow: 0 10px 25px rgba(0,0,0,0.5);
+            overflow: hidden;
+            border: 1px solid #334155;
+        }
+        /* 电平柱状图容器 */
+        .bar-container {
+            position: relative;
+            height: 250px;
+            width: 60px;
+            background: rgba(30, 41, 59, 0.5);
+            border: 1px dashed #475569;
+            border-radius: 8px;
+            display: flex;
+            align-items: flex-end;
+            justify-content: center;
+            overflow: visible;
+        }
+        /* 零电位基准线 */
+        .zero-line {
+            position: absolute;
+            bottom: 50%; /* 0V line in the middle */
+            left: -10px;
+            right: -10px;
+            height: 2px;
+            background: rgba(255, 255, 255, 0.3);
+            z-index: 0;
+        }
+        .zero-label {
+            position: absolute;
+            bottom: calc(50% - 10px);
+            left: -35px;
+            font-size: 12px;
+            color: rgba(255, 255, 255, 0.5);
+            font-family: monospace;
+        }
+        /* 动态柱子 */
+        .voltage-bar {
+            width: 40px;
+            border-radius: 4px;
+            transition: all 0.2s ease-out;
+            position: absolute;
+            z-index: 10;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: bold;
+            font-size: 14px;
+            color: #fff;
+            text-shadow: 0 1px 2px rgba(0,0,0,0.8);
+        }
+        /* 滑块样式 */
+        input[type=range] {
+            -webkit-appearance: none;
+            width: 100%;
+            background: transparent;
+        }
+        input[type=range]::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            height: 24px;
+            width: 24px;
+            border-radius: 50%;
+            background: #f59e0b;
+            cursor: pointer;
+            margin-top: -10px;
+            box-shadow: 0 0 10px rgba(245, 158, 11, 0.5);
+        }
+        input[type=range]::-webkit-slider-runnable-track {
+            width: 100%;
+            height: 6px;
+            cursor: pointer;
+            background: #334155;
+            border-radius: 3px;
+        }
+    </style>
+</head>
+<body>
+
+<div class="widget-container p-6">
+    
+    <div class="mb-6 border-b border-slate-700 pb-4">
+        <h2 class="text-2xl font-bold text-sky-400 flex items-center gap-2">
+            <i class="fas fa-balance-scale"></i> RS485 差分信号与共模干扰演示
+        </h2>
+        <p class="text-sm text-slate-400 mt-2">
+            体验“跷跷板”原理：观察外界环境干扰如何同时作用于 A、B 两线，并在接收端通过“做减法”被完美抵消。
+        </p>
+    </div>
+
+    <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8 bg-slate-800 p-4 rounded-xl border border-slate-700">
+        <div>
+            <label class="block text-sm font-medium text-slate-400 mb-3">1. 发送端输出 (TX)</label>
+            <div class="flex gap-4">
+                <button id="btnLogic1" class="flex-1 bg-sky-600 hover:bg-sky-500 text-white font-bold py-2 px-4 rounded transition border-2 border-sky-400 shadow-[0_0_15px_rgba(2,132,199,0.5)]">
+                    发送逻辑 "1"
+                </button>
+                <button id="btnLogic0" class="flex-1 bg-slate-700 hover:bg-slate-600 text-slate-300 font-bold py-2 px-4 rounded transition border-2 border-transparent">
+                    发送逻辑 "0"
+                </button>
+            </div>
+            <div class="mt-2 text-xs text-slate-500 font-mono" id="txStatus">
+                当前电平基准：Va = 3V, Vb = 1V
+            </div>
+        </div>
+
+        <div>
+            <label class="block text-sm font-medium text-slate-400 mb-3 flex justify-between">
+                <span>2. 施加共模干扰 (环境电磁噪声)</span>
+                <span id="noiseValue" class="text-amber-400 font-mono font-bold">0 V</span>
+            </label>
+            <input type="range" id="noiseSlider" min="-5" max="5" step="0.1" value="0">
+            <div class="flex justify-between text-xs text-slate-500 mt-2">
+                <span>-5V (雷击/浪涌)</span>
+                <span>0V (无干扰)</span>
+                <span>+5V (电机启停)</span>
+            </div>
+        </div>
+    </div>
+
+    <div class="flex flex-col md:flex-row items-center justify-around bg-slate-900 rounded-xl p-6 border border-slate-700 relative">
+        
+        <div class="flex flex-col items-center">
+            <h3 class="text-sky-400 font-bold mb-4">导线 A 对地电压</h3>
+            <div class="bar-container">
+                <div class="zero-label">0V</div>
+                <div class="zero-line"></div>
+                <div id="barA" class="voltage-bar bg-sky-500">3V</div>
+            </div>
+            <div class="mt-4 font-mono text-sm text-slate-300" id="textA">Va = 3.0V</div>
+        </div>
+
+        <div class="flex flex-col items-center justify-center">
+            <div class="text-4xl text-slate-500 font-bold mb-10"><i class="fas fa-minus"></i></div>
+            <div class="text-sm text-slate-400 border border-slate-600 rounded px-2 py-1 bg-slate-800">
+                接收器做减法<br>(差分运算)
+            </div>
+        </div>
+
+        <div class="flex flex-col items-center">
+            <h3 class="text-emerald-400 font-bold mb-4">导线 B 对地电压</h3>
+            <div class="bar-container">
+                <div class="zero-label">0V</div>
+                <div class="zero-line"></div>
+                <div id="barB" class="voltage-bar bg-emerald-500">1V</div>
+            </div>
+            <div class="mt-4 font-mono text-sm text-slate-300" id="textB">Vb = 1.0V</div>
+        </div>
+
+        <div class="text-4xl text-slate-500 font-bold mb-10"><i class="fas fa-equals"></i></div>
+
+        <div class="flex flex-col items-center">
+            <h3 class="text-purple-400 font-bold mb-4">接收端差分电压</h3>
+            <div class="bar-container border-purple-500/30">
+                <div class="zero-label">0V</div>
+                <div class="zero-line"></div>
+                <div id="barDiff" class="voltage-bar bg-purple-500">2V</div>
+            </div>
+            <div class="mt-4 font-mono text-sm font-bold text-purple-300" id="textDiff">Va - Vb = 2.0V</div>
+        </div>
+
+    </div>
+
+    <div class="mt-6 text-center">
+        <div class="inline-block bg-slate-800 border border-slate-600 rounded-lg px-8 py-4 shadow-lg">
+            <div class="text-sm text-slate-400 uppercase tracking-widest mb-1">最终单片机解析逻辑</div>
+            <div id="logicResult" class="text-5xl font-bold text-sky-400 font-mono tracking-wider drop-shadow-[0_0_10px_rgba(56,189,248,0.8)]">
+                1
+            </div>
+            <div id="logicExplanation" class="text-xs text-slate-500 mt-2">
+                (Va - Vb > +200mV，判定为逻辑 1)
+            </div>
+        </div>
+    </div>
+
+</div>
+
+<script>
+    // 初始化基准电压 (理想状态下)
+    let baseVa = 3.0;
+    let baseVb = 1.0;
+
+    // DOM 元素获取
+    const btnLogic1 = document.getElementById('btnLogic1');
+    const btnLogic0 = document.getElementById('btnLogic0');
+    const noiseSlider = document.getElementById('noiseSlider');
+    const noiseValueText = document.getElementById('noiseValue');
+    const txStatus = document.getElementById('txStatus');
+    
+    const barA = document.getElementById('barA');
+    const barB = document.getElementById('barB');
+    const barDiff = document.getElementById('barDiff');
+    
+    const textA = document.getElementById('textA');
+    const textB = document.getElementById('textB');
+    const textDiff = document.getElementById('textDiff');
+    
+    const logicResult = document.getElementById('logicResult');
+    const logicExplanation = document.getElementById('logicExplanation');
+
+    // 更新界面视觉效果函数
+    function updateVisuals() {
+        // 1. 获取干扰电压
+        let noise = parseFloat(noiseSlider.value);
+        noiseValueText.textContent = (noise > 0 ? "+" : "") + noise.toFixed(1) + " V";
+        if(noise !== 0) {
+            noiseValueText.classList.add('text-rose-400');
+            noiseValueText.classList.remove('text-amber-400');
+        } else {
+            noiseValueText.classList.remove('text-rose-400');
+            noiseValueText.classList.add('text-amber-400');
+        }
+
+        // 2. 计算实际对地电压
+        let actualVa = baseVa + noise;
+        let actualVb = baseVb + noise;
+        
+        // 3. 计算差分电压
+        let diffV = actualVa - actualVb; // (Va + noise) - (Vb + noise) = Va - Vb
+
+        // 4. 更新柱状图高度和位置
+        // 设定总量程为 -10V 到 +10V，总高度 250px (0V 在 50% 即 125px 处)
+        // 比例因子 = 250 / 20 = 12.5 px/V
+        const pixelsPerVolt = 12.5;
+
+        function setBar(barElem, voltage) {
+            let height = Math.abs(voltage) * pixelsPerVolt;
+            // 限制最大高度防止撑破容器
+            if(height > 125) height = 125; 
+            
+            barElem.style.height = height + 'px';
+            barElem.textContent = (voltage > 0 ? '+' : '') + voltage.toFixed(1) + 'V';
+            
+            if (voltage >= 0) {
+                // 正电压，从中间向上长
+                barElem.style.bottom = '50%';
+                barElem.style.top = 'auto';
+                barElem.classList.remove('bg-rose-500'); // 负压颜色
+            } else {
+                // 负电压，从中间向下长
+                barElem.style.top = '50%';
+                barElem.style.bottom = 'auto';
+                barElem.classList.add('bg-rose-500');
+            }
+        }
+
+        setBar(barA, actualVa);
+        setBar(barB, actualVb);
+        setBar(barDiff, diffV);
+
+        // 5. 更新文字
+        textA.textContent = `Va = ${actualVa.toFixed(1)}V`;
+        textB.textContent = `Vb = ${actualVb.toFixed(1)}V`;
+        textDiff.textContent = `Va - Vb = ${diffV.toFixed(1)}V`;
+
+        // 6. 更新判定结果 (差值阈值假设为 ±0.2V 即 200mV)
+        if (diffV > 0.2) {
+            logicResult.textContent = "1";
+            logicResult.className = "text-5xl font-bold text-sky-400 font-mono tracking-wider drop-shadow-[0_0_10px_rgba(56,189,248,0.8)]";
+            logicExplanation.textContent = "(Va - Vb > +200mV，判定为逻辑 1)";
+        } else if (diffV < -0.2) {
+            logicResult.textContent = "0";
+            logicResult.className = "text-5xl font-bold text-emerald-400 font-mono tracking-wider drop-shadow-[0_0_10px_rgba(52,211,153,0.8)]";
+            logicExplanation.textContent = "(Va - Vb < -200mV，判定为逻辑 0)";
+        } else {
+            logicResult.textContent = "异常";
+            logicResult.className = "text-5xl font-bold text-rose-500 font-mono tracking-wider drop-shadow-[0_0_10px_rgba(244,63,94,0.8)]";
+            logicExplanation.textContent = "(压差介于 ±200mV 之间，状态未定义)";
+        }
+    }
+
+    // 事件监听
+    btnLogic1.addEventListener('click', () => {
+        baseVa = 3.0;
+        baseVb = 1.0;
+        
+        // UI 按钮状态更新
+        btnLogic1.className = "flex-1 bg-sky-600 hover:bg-sky-500 text-white font-bold py-2 px-4 rounded transition border-2 border-sky-400 shadow-[0_0_15px_rgba(2,132,199,0.5)]";
+        btnLogic0.className = "flex-1 bg-slate-700 hover:bg-slate-600 text-slate-300 font-bold py-2 px-4 rounded transition border-2 border-transparent";
+        txStatus.textContent = "当前电平基准：Va = 3V, Vb = 1V";
+        
+        updateVisuals();
+    });
+
+    btnLogic0.addEventListener('click', () => {
+        baseVa = 1.0;
+        baseVb = 3.0;
+        
+        // UI 按钮状态更新
+        btnLogic0.className = "flex-1 bg-emerald-600 hover:bg-emerald-500 text-white font-bold py-2 px-4 rounded transition border-2 border-emerald-400 shadow-[0_0_15px_rgba(16,185,129,0.5)]";
+        btnLogic1.className = "flex-1 bg-slate-700 hover:bg-slate-600 text-slate-300 font-bold py-2 px-4 rounded transition border-2 border-transparent";
+        txStatus.textContent = "当前电平基准：Va = 1V, Vb = 3V";
+        
+        updateVisuals();
+    });
+
+    noiseSlider.addEventListener('input', updateVisuals);
+
+    // 初始渲染
+    updateVisuals();
+</script>
+
+</body>
+</html>
