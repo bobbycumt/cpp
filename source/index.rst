@@ -11,7 +11,6 @@ C++教学讲义
 .. toctree::
    :maxdepth: 3
    :caption: 目录
-   :math:`\sigma_{1}`
    
    
    lang/index
